@@ -1,784 +1,694 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Manajemen Mahasiswa: Keuangan & Agenda</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Phosphor Icons (Ikon Profesional) -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Google Fonts: Plus Jakarta Sans -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <style>
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #f1f5f9; /* Slate 100 */
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        /* Hilangkan scrollbar default untuk tampilan lebih clean di mobile */
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
-        
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-        .calendar-cell { 
-            aspect-ratio: 1; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; border-radius: 12px; transition: all 0.3s ease;
-            font-weight: 600; font-size: 0.875rem; color: #475569;
-        }
-        .calendar-cell:active { transform: scale(0.95); }
-        .calendar-cell.active { background-color: #4f46e5; color: white; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3); }
-        .calendar-cell.today { border: 2px solid #4f46e5; background-color: #e0e7ff; color: #4338ca; }
-        .calendar-cell.today.active { border-color: transparent; }
-        
-        .dot-container { display: flex; gap: 2px; margin-top: 2px; height: 6px;}
-        .dot { width: 4px; height: 4px; border-radius: 50%; }
-        
-        /* Animasi Modal Bottom Sheet */
-        .bottom-sheet { transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-        .bottom-sheet.open { transform: translateY(0); }
-        
-        /* Custom Checkbox */
-        .custom-checkbox {
-            appearance: none; width: 24px; height: 24px; border: 2px solid #cbd5e1;
-            border-radius: 6px; outline: none; cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; justify-content: center; background-color: white;
-            flex-shrink: 0;
-        }
-        .custom-checkbox:checked { background-color: #4f46e5; border-color: #4f46e5; }
-        .custom-checkbox:checked::after {
-            content: '✓'; color: white; font-weight: bold; font-size: 14px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#4f46e5" />
+  <title>Student Hub Nasional — Agenda & Keuangan Mahasiswa</title>
 
-        /* Glassmorphism Navigation */
-        .glass-nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.3); }
-        
-        .nav-item { transition: all 0.3s; }
-        .nav-item.active { color: #4f46e5; }
-        .nav-item.inactive { color: #94a3b8; }
-        
-        /* Menghindari tertutup keyboard di iOS */
-        input, select { font-size: 16px !important; }
-    </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --brand: #4f46e5;
+      --brand-dark: #3730a3;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --surface: rgba(255,255,255,.88);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(79,70,229,.18), transparent 34rem),
+        radial-gradient(circle at top right, rgba(16,185,129,.12), transparent 30rem),
+        linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+      color: var(--ink);
+      -webkit-tap-highlight-color: transparent;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.45); border-radius: 999px; }
+    input, select, textarea { font-size: 16px !important; }
+    .glass {
+      background: var(--surface);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,.72);
+      box-shadow: 0 20px 60px rgba(15,23,42,.08);
+    }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: .42rem; }
+    .calendar-cell {
+      min-height: 42px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      border-radius: 16px;
+      transition: .22s ease;
+      font-weight: 800;
+      color: #475569;
+      border: 1px solid transparent;
+      background: rgba(248,250,252,.72);
+    }
+    .calendar-cell:hover { transform: translateY(-1px); background: white; border-color: #e0e7ff; }
+    .calendar-cell:active { transform: scale(.96); }
+    .calendar-cell.today { background: #eef2ff; border-color: #818cf8; color: #3730a3; }
+    .calendar-cell.active { background: #4f46e5; color: #fff; box-shadow: 0 10px 24px rgba(79,70,229,.30); }
+    .calendar-cell.muted { opacity: .38; cursor: default; }
+    .dot-container { display:flex; gap:2px; min-height:5px; }
+    .dot { width:5px; height:5px; border-radius:99px; }
+    .bottom-sheet { transform: translateY(105%); transition: transform .35s cubic-bezier(.22,1,.36,1); }
+    .bottom-sheet.open { transform: translateY(0); }
+    .toast-show { transform: translate(-50%,0) !important; opacity: 1 !important; }
+    .btn-press { transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+    .btn-press:active { transform: scale(.97); }
+    .custom-checkbox {
+      appearance: none;
+      width: 24px; height: 24px;
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      background: white;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: .18s ease;
+    }
+    .custom-checkbox:checked { background: #4f46e5; border-color:#4f46e5; }
+    .custom-checkbox:checked::after { content:'✓'; color:white; font-weight:900; font-size:14px; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .animate-in { animation: fadeUp .28s ease both; }
+    @keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+    @media (min-width: 1024px) {
+      .calendar-cell { min-height: 48px; }
+      .bottom-sheet { transform: translate(-50%, 105%) !important; }
+      .bottom-sheet.open { transform: translate(-50%, 0) !important; }
+    }
+  </style>
 </head>
-<body class="text-slate-800 pb-24 h-screen overflow-y-auto">
+<body>
+  <div id="loading" class="hidden fixed inset-0 z-[100] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center">
+    <div class="relative grid place-items-center">
+      <div class="absolute w-16 h-16 rounded-full bg-indigo-300/40 animate-ping"></div>
+      <div class="w-14 h-14 rounded-2xl bg-indigo-600 text-white grid place-items-center shadow-xl shadow-indigo-200">
+        <i class="ph-fill ph-spinner-gap animate-spin text-3xl"></i>
+      </div>
+    </div>
+    <p class="mt-5 text-sm font-extrabold tracking-wide text-slate-600">Memproses data...</p>
+  </div>
 
-    <!-- Loading State -->
-    <div id="loading" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-[100] flex flex-col items-center justify-center hidden">
-        <div class="relative flex justify-center items-center">
-            <div class="absolute animate-ping inline-flex h-12 w-12 rounded-full bg-indigo-400 opacity-75"></div>
-            <i class="ph-fill ph-spinner-gap animate-spin text-4xl text-indigo-600 relative"></i>
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 -translate-y-16 opacity-0 z-[120] transition-all duration-300 max-w-[92vw]">
+    <div id="toast-box" class="flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl text-white font-bold text-sm bg-emerald-500">
+      <i id="toast-icon" class="ph-fill ph-check-circle text-xl"></i>
+      <span id="toast-message">Berhasil</span>
+    </div>
+  </div>
+
+  <div id="auth-screen" class="hidden min-h-screen px-5 py-8 flex items-center justify-center">
+    <div class="w-full max-w-5xl grid lg:grid-cols-[1.05fr_.95fr] gap-6 items-stretch">
+      <section class="glass rounded-[36px] p-7 lg:p-10 overflow-hidden relative min-h-[520px] flex flex-col justify-between">
+        <div class="absolute -top-24 -right-24 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-emerald-400/20 rounded-full blur-3xl"></div>
+        <div class="relative">
+          <div class="inline-flex items-center gap-2 rounded-full bg-white/70 border border-white px-4 py-2 text-xs font-extrabold text-indigo-700 shadow-sm">
+            <i class="ph-fill ph-sparkle"></i> Platform produktivitas mahasiswa
+          </div>
+          <h1 class="mt-7 text-4xl lg:text-6xl font-black tracking-tight leading-[1.03] text-slate-950">Student Hub Nasional</h1>
+          <p class="mt-5 text-slate-600 text-base lg:text-lg leading-relaxed max-w-xl font-medium">Kelola agenda, deadline, prioritas, pemasukan, dan pengeluaran dalam satu dashboard yang bersih, cepat, dan ramah mobile.</p>
         </div>
-        <p class="text-slate-600 font-semibold mt-4 text-sm tracking-wide">Memproses data...</p>
-    </div>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 transform -translate-y-24 transition-all duration-300 z-[100] flex items-center gap-2 px-5 py-3 rounded-full shadow-lg shadow-black/10 text-white font-medium text-sm w-max max-w-[90%]">
-        <i id="toast-icon" class="ph-fill ph-check-circle text-lg"></i>
-        <span id="toast-message">Pesan</span>
-    </div>
-
-    <!-- Layar Login / Register -->
-    <div id="auth-screen" class="max-w-md mx-auto bg-white min-h-screen relative flex flex-col px-8 py-12 justify-center hidden">
-        <div class="absolute top-0 left-0 w-full h-64 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-b-[48px] -z-10"></div>
-        
-        <div class="bg-white rounded-3xl shadow-xl shadow-indigo-100 p-8 mt-10 border border-slate-50">
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-indigo-50 text-indigo-600 mb-6 shadow-inner">
-                    <i class="ph-duotone ph-student text-5xl"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Student Hub</h2>
-                <p class="text-slate-500 text-sm mt-2 font-medium">Satu tempat untuk tugas & dompetmu.</p>
-            </div>
-
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Email Kampus / Pribadi</label>
-                    <div class="relative">
-                        <i class="ph ph-envelope-simple absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                        <input type="email" id="auth-email" placeholder="mahasiswa@kampus.ac.id" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kata Sandi</label>
-                    <div class="relative">
-                        <i class="ph ph-lock-key absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                        <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium">
-                    </div>
-                </div>
-                
-                <div class="pt-4 flex flex-col gap-3">
-                    <button id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-[0.98]">Masuk Sekarang</button>
-                    <div class="relative flex items-center py-2">
-                        <div class="flex-grow border-t border-slate-200"></div>
-                        <span class="flex-shrink-0 mx-4 text-slate-400 text-xs font-medium">Atau pengguna baru?</span>
-                        <div class="flex-grow border-t border-slate-200"></div>
-                    </div>
-                    <button id="btn-register" class="w-full bg-white border-2 border-indigo-100 hover:bg-indigo-50 text-indigo-600 font-bold py-3 rounded-xl transition-all active:scale-[0.98]">Buat Akun Baru</button>
-                </div>
-            </div>
+        <div class="relative grid sm:grid-cols-3 gap-3 mt-10">
+          <div class="bg-white/72 rounded-3xl p-4 border border-white shadow-sm"><i class="ph-duotone ph-calendar-check text-3xl text-indigo-600"></i><p class="mt-3 text-sm font-extrabold">Agenda terstruktur</p><p class="text-xs text-slate-500 mt-1">Deadline, prioritas, progres.</p></div>
+          <div class="bg-white/72 rounded-3xl p-4 border border-white shadow-sm"><i class="ph-duotone ph-wallet text-3xl text-emerald-600"></i><p class="mt-3 text-sm font-extrabold">Keuangan rapi</p><p class="text-xs text-slate-500 mt-1">Saldo, income, expense.</p></div>
+          <div class="bg-white/72 rounded-3xl p-4 border border-white shadow-sm"><i class="ph-duotone ph-chart-line-up text-3xl text-amber-500"></i><p class="mt-3 text-sm font-extrabold">Insight cepat</p><p class="text-xs text-slate-500 mt-1">Statistik dan filter.</p></div>
         </div>
-    </div>
+      </section>
 
-    <!-- Dashboard Utama -->
-    <div id="app-dashboard" class="max-w-md mx-auto min-h-screen relative hidden">
-        
-        <!-- App Header (Minimalis) -->
-        <header class="bg-white px-6 pt-10 pb-4 sticky top-0 z-40 border-b border-slate-100 shadow-sm">
-            <div class="flex justify-between items-center">
-                <div>
-                    <p id="header-date" class="text-xs font-bold text-indigo-600 tracking-wider uppercase mb-1">HARI INI</p>
-                    <h1 class="text-2xl font-extrabold text-slate-800">Halo! 👋</h1>
-                </div>
-                <button id="btn-logout" class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-rose-100 hover:text-rose-600 transition-colors">
-                    <i class="ph ph-sign-out text-xl"></i>
-                </button>
-            </div>
-            
-            <!-- Global Search -->
-            <div class="mt-5 relative">
-                <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
-                <input type="text" id="search-input" placeholder="Cari tugas, transaksi, kategori..." class="w-full bg-slate-100/80 border-none rounded-2xl py-3.5 pl-11 pr-4 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium shadow-inner">
-            </div>
-        </header>
-
-        <!-- Main Content Area -->
-        <main class="p-5 space-y-6">
-            
-            <!-- Global Calendar Card -->
-            <div class="bg-white rounded-[24px] p-5 shadow-sm border border-slate-100">
-                <div class="flex justify-between items-center mb-5">
-                    <button id="prev-month" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-full text-slate-600 active:scale-95"><i class="ph-bold ph-caret-left"></i></button>
-                    <h3 id="current-month-year" class="font-bold text-slate-800 text-lg">Bulan Tahun</h3>
-                    <button id="next-month" class="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-full text-slate-600 active:scale-95"><i class="ph-bold ph-caret-right"></i></button>
-                </div>
-                <div class="calendar-grid text-xs text-center text-slate-400 font-bold uppercase tracking-wider mb-3">
-                    <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
-                </div>
-                <div id="calendar-body" class="calendar-grid"></div>
-                
-                <!-- Filter Status -->
-                <div id="filter-info" class="hidden mt-4 bg-indigo-50/50 border border-indigo-100 text-indigo-700 p-3 rounded-xl flex justify-between items-center animate-fade-in">
-                    <div class="flex items-center gap-2">
-                        <i class="ph-fill ph-calendar-check text-indigo-500 text-lg"></i>
-                        <span id="filter-text" class="text-sm font-semibold">Tugas tgl X</span>
-                    </div>
-                    <button id="clear-filter" class="w-6 h-6 flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full hover:bg-indigo-200"><i class="ph-bold ph-x text-xs"></i></button>
-                </div>
-            </div>
-
-            <!-- TAB CONTENT CONTAINER -->
-            <div id="tab-content" class="pb-6">
-                <!-- Data List (Akan dirender oleh JS) -->
-            </div>
-
-        </main>
-
-        <!-- BOTTOM NAVIGATION BAR (Mobile Style) -->
-        <nav class="fixed bottom-0 w-full max-w-md glass-nav z-40 rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)] px-6 py-2 pb-safe">
-            <div class="flex justify-between items-center relative">
-                
-                <!-- Tab Agenda -->
-                <button id="nav-agenda" class="nav-item active flex flex-col items-center p-2 w-16" onclick="switchTab('agenda')">
-                    <i id="icon-agenda" class="ph-fill ph-list-checks text-2xl mb-1 transition-all"></i>
-                    <span class="text-[10px] font-bold">Agenda</span>
-                </button>
-
-                <!-- Tombol Tengah Besar (FAB) -->
-                <div class="relative -top-6">
-                    <button id="btn-open-modal" class="w-14 h-14 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-300 hover:bg-indigo-700 hover:scale-105 active:scale-95 transition-all">
-                        <i class="ph-bold ph-plus text-2xl"></i>
-                    </button>
-                </div>
-
-                <!-- Tab Keuangan -->
-                <button id="nav-finance" class="nav-item inactive flex flex-col items-center p-2 w-16" onclick="switchTab('finance')">
-                    <i id="icon-finance" class="ph ph-wallet text-2xl mb-1 transition-all"></i>
-                    <span class="text-[10px] font-bold">Keuangan</span>
-                </button>
-            </div>
-        </nav>
-
-        <!-- MODAL / BOTTOM SHEET UNTUK TAMBAH DATA -->
-        <div id="modal-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
-        
-        <div id="add-modal" class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white rounded-t-[32px] z-50 bottom-sheet flex flex-col max-h-[90vh]">
-            <div class="p-4 flex justify-center pb-0">
-                <div class="w-12 h-1.5 bg-slate-200 rounded-full"></div>
-            </div>
-            
-            <div class="px-6 py-4 flex justify-between items-center border-b border-slate-100">
-                <h3 class="text-xl font-bold text-slate-800" id="modal-title">Tambah Baru</h3>
-                <button id="btn-close-modal" class="w-8 h-8 flex items-center justify-center bg-slate-100 text-slate-500 rounded-full active:scale-95">
-                    <i class="ph-bold ph-x"></i>
-                </button>
-            </div>
-
-            <div class="overflow-y-auto p-6 flex-1">
-                <!-- Toggle Mode Input di dalam Modal -->
-                <div class="flex bg-slate-100 p-1 rounded-xl mb-6">
-                    <button id="toggle-add-agenda" class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-white text-indigo-600 shadow-sm transition-all">📝 Agenda</button>
-                    <button id="toggle-add-finance" class="flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-500 transition-all">💰 Keuangan</button>
-                </div>
-
-                <!-- Form Agenda -->
-                <form id="form-agenda" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Judul Tugas</label>
-                        <input type="text" id="ag-title" required placeholder="Cth: Nugas Makalah PKN" class="w-full text-base font-medium bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:bg-white transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Deskripsi (Opsional)</label>
-                        <textarea id="ag-desc" rows="2" placeholder="Catatan tambahan..." class="w-full text-sm font-medium bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:bg-white transition-all resize-none"></textarea>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Prioritas</label>
-                            <div class="relative">
-                                <select id="ag-priority" class="w-full text-sm font-bold bg-slate-50 border border-slate-200 rounded-xl p-3 appearance-none outline-none focus:border-indigo-500">
-                                    <option value="Tinggi">🔴 Tinggi</option>
-                                    <option value="Sedang" selected>🟡 Sedang</option>
-                                    <option value="Rendah">🟢 Rendah</option>
-                                </select>
-                                <i class="ph-bold ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Kategori</label>
-                            <div class="relative">
-                                <select id="ag-category" class="w-full text-sm font-bold bg-slate-50 border border-slate-200 rounded-xl p-3 appearance-none outline-none focus:border-indigo-500">
-                                    <option value="Kuliah">📚 Kuliah</option>
-                                    <option value="Organisasi">👥 Organisasi</option>
-                                    <option value="Pribadi">🏠 Pribadi</option>
-                                </select>
-                                <i class="ph-bold ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal & Waktu</label>
-                        <input type="date" id="ag-date" required class="w-full text-base font-medium bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 focus:bg-white transition-all">
-                    </div>
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-bold text-base rounded-xl py-4 mt-4 shadow-lg shadow-indigo-200 active:scale-95 transition-all">Simpan Agenda</button>
-                </form>
-
-                <!-- Form Keuangan (Sembunyi Awal) -->
-                <form id="form-finance" class="space-y-4 hidden">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">Judul Transaksi</label>
-                        <input type="text" id="fin-title" required placeholder="Cth: Uang Bulanan / Bayar Kos" class="w-full text-base font-medium bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-emerald-500 focus:bg-white transition-all">
-                    </div>
-                    <div class="grid grid-cols-5 gap-3">
-                        <div class="col-span-3">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Nominal (Rp)</label>
-                            <input type="number" id="fin-amount" required placeholder="50000" class="w-full text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-emerald-500 focus:bg-white transition-all">
-                        </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Jenis</label>
-                            <div class="relative">
-                                <select id="fin-type" class="w-full text-sm font-bold bg-slate-50 border border-slate-200 rounded-xl p-3.5 appearance-none outline-none focus:border-emerald-500">
-                                    <option value="expense">📉 Keluar</option>
-                                    <option value="income">📈 Masuk</option>
-                                </select>
-                                <i class="ph-bold ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Kategori</label>
-                            <div class="relative">
-                                <select id="fin-category" class="w-full text-sm font-bold bg-slate-50 border border-slate-200 rounded-xl p-3 appearance-none outline-none focus:border-emerald-500">
-                                    <option value="Makan & Minum">🍔 Makan</option>
-                                    <option value="Kos/Tempat Tinggal">🏠 Kos</option>
-                                    <option value="Transportasi">🛵 Transportasi</option>
-                                    <option value="Tugas Kuliah">📚 Kuliah</option>
-                                    <option value="Lainnya">📦 Lainnya</option>
-                                </select>
-                                <i class="ph-bold ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">Tanggal</label>
-                            <input type="date" id="fin-date" required class="w-full text-base font-medium bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-emerald-500 focus:bg-white transition-all">
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full bg-emerald-600 text-white font-bold text-base rounded-xl py-4 mt-4 shadow-lg shadow-emerald-200 active:scale-95 transition-all">Simpan Transaksi</button>
-                </form>
-            </div>
+      <section class="bg-white rounded-[36px] p-7 lg:p-9 shadow-2xl shadow-indigo-100/60 border border-slate-100 flex flex-col justify-center">
+        <div class="text-center mb-8">
+          <div class="mx-auto w-20 h-20 rounded-[28px] bg-indigo-50 text-indigo-600 grid place-items-center shadow-inner">
+            <i class="ph-duotone ph-student text-5xl"></i>
+          </div>
+          <h2 class="text-2xl font-black mt-5 tracking-tight">Masuk ke Dashboard</h2>
+          <p class="text-sm text-slate-500 mt-2 font-medium">Gunakan email aktif untuk menyimpan data Anda.</p>
         </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Email</label>
+            <div class="relative">
+              <i class="ph ph-envelope-simple absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+              <input id="auth-email" type="email" autocomplete="email" placeholder="nama@email.com" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-4 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 font-semibold transition" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2">Kata Sandi</label>
+            <div class="relative">
+              <i class="ph ph-lock-key absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+              <input id="auth-password" type="password" autocomplete="current-password" placeholder="Minimal 6 karakter" class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-12 pr-12 outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 font-semibold transition" />
+              <button id="toggle-password" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl hover:bg-slate-100 grid place-items-center text-slate-400"><i class="ph ph-eye"></i></button>
+            </div>
+          </div>
+          <button id="btn-login" class="btn-press w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-200">Masuk Sekarang</button>
+          <button id="btn-register" class="btn-press w-full bg-white border-2 border-indigo-100 hover:bg-indigo-50 text-indigo-700 font-black py-4 rounded-2xl">Buat Akun Baru</button>
+          <p class="text-[12px] text-slate-400 leading-relaxed text-center">Tips keamanan: gunakan Supabase RLS agar setiap user hanya dapat membaca dan mengubah datanya sendiri.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="app-dashboard" class="hidden min-h-screen">
+    <div class="max-w-7xl mx-auto lg:px-6 lg:py-6">
+      <div class="lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-6">
+        <aside class="hidden lg:flex glass rounded-[32px] p-5 sticky top-6 h-[calc(100vh-3rem)] flex-col">
+          <div class="flex items-center gap-3 p-2">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-600 text-white grid place-items-center shadow-lg shadow-indigo-200"><i class="ph-fill ph-student text-2xl"></i></div>
+            <div><p class="font-black leading-tight">Student Hub</p><p class="text-xs text-slate-500 font-bold">Nasional Edition</p></div>
+          </div>
+          <div class="mt-8 space-y-2">
+            <button data-tab="agenda" class="side-tab w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-extrabold text-sm bg-indigo-600 text-white"><i class="ph-fill ph-list-checks text-xl"></i>Agenda</button>
+            <button data-tab="finance" class="side-tab w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-extrabold text-sm text-slate-500 hover:bg-white"><i class="ph ph-wallet text-xl"></i>Keuangan</button>
+          </div>
+          <div class="mt-auto bg-slate-950 text-white rounded-[28px] p-5 overflow-hidden relative">
+            <div class="absolute -right-8 -top-8 w-24 h-24 bg-indigo-400/30 rounded-full blur-2xl"></div>
+            <p class="relative text-xs text-slate-300 font-bold uppercase tracking-wider">Produktivitas</p>
+            <p id="sidebar-insight" class="relative mt-2 text-lg font-black leading-tight">Tetap fokus pada prioritas hari ini.</p>
+            <button id="btn-open-modal-desktop" class="relative mt-5 w-full bg-white text-slate-950 rounded-2xl py-3 font-black btn-press">Tambah Data</button>
+          </div>
+        </aside>
+
+        <div class="min-w-0 pb-28 lg:pb-0">
+          <header class="sticky top-0 z-40 bg-white/90 lg:bg-transparent backdrop-blur-xl lg:backdrop-blur-none border-b border-slate-100 lg:border-none px-5 pt-8 pb-4 lg:p-0 lg:mb-6">
+            <div class="glass lg:rounded-[32px] lg:p-5 lg:flex lg:items-center lg:justify-between">
+              <div>
+                <p id="header-date" class="text-xs font-black text-indigo-600 tracking-widest uppercase">Hari ini</p>
+                <h1 class="text-2xl lg:text-3xl font-black tracking-tight mt-1">Halo, <span id="user-name">Mahasiswa</span> 👋</h1>
+                <p id="header-subtitle" class="hidden sm:block text-sm text-slate-500 font-semibold mt-1">Kelola agenda dan keuangan dalam satu ruang kerja.</p>
+              </div>
+              <div class="flex items-center gap-2 mt-4 lg:mt-0">
+                <button id="btn-export" class="hidden sm:inline-flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl font-black text-sm btn-press"><i class="ph-bold ph-download-simple"></i>Export CSV</button>
+                <button id="btn-logout" class="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 hover:bg-rose-100 grid place-items-center btn-press" title="Keluar"><i class="ph-bold ph-sign-out text-xl"></i></button>
+              </div>
+            </div>
+          </header>
+
+          <main class="px-5 lg:px-0 space-y-6">
+            <section class="grid xl:grid-cols-[minmax(0,1fr)_360px] gap-6">
+              <div class="space-y-6 min-w-0">
+                <div id="hero-summary" class="grid md:grid-cols-4 gap-3"></div>
+
+                <section class="glass rounded-[32px] p-4 lg:p-5">
+                  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                    <div>
+                      <h2 class="text-lg font-black">Ruang Kerja</h2>
+                      <p class="text-xs text-slate-500 font-bold mt-1">Cari, filter, urutkan, edit, dan selesaikan data.</p>
+                    </div>
+                    <div class="relative md:w-80">
+                      <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                      <input id="search-input" type="text" placeholder="Cari judul, kategori, deskripsi..." class="w-full bg-white border border-slate-200 rounded-2xl py-3.5 pl-11 pr-4 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 font-semibold" />
+                    </div>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2 mb-4">
+                    <button data-range="all" class="range-btn px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-black">Semua</button>
+                    <button data-range="today" class="range-btn px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-black">Hari ini</button>
+                    <button data-range="week" class="range-btn px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-black">7 hari</button>
+                    <button data-range="late" class="range-btn px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-black">Terlambat</button>
+                    <select id="sort-select" class="ml-auto bg-white border border-slate-200 rounded-full px-4 py-2 text-xs font-black outline-none focus:ring-4 focus:ring-indigo-100">
+                      <option value="date-asc">Tanggal terdekat</option>
+                      <option value="date-desc">Tanggal terbaru</option>
+                      <option value="priority">Prioritas tertinggi</option>
+                      <option value="title">Judul A-Z</option>
+                    </select>
+                  </div>
+
+                  <div id="active-filter-bar" class="hidden mb-4 rounded-2xl bg-indigo-50 border border-indigo-100 p-3 text-indigo-700 font-bold text-sm flex items-center justify-between gap-3">
+                    <span id="active-filter-text"></span>
+                    <button id="clear-filter" class="w-8 h-8 rounded-xl bg-white/80 grid place-items-center"><i class="ph-bold ph-x"></i></button>
+                  </div>
+
+                  <div id="tab-content" class="min-h-[320px]"></div>
+                </section>
+              </div>
+
+              <aside class="space-y-6">
+                <section class="glass rounded-[32px] p-5">
+                  <div class="flex justify-between items-center mb-5">
+                    <button id="prev-month" class="w-10 h-10 rounded-2xl bg-white border border-slate-200 grid place-items-center btn-press"><i class="ph-bold ph-caret-left"></i></button>
+                    <div class="text-center"><h3 id="current-month-year" class="font-black text-lg">Bulan Tahun</h3><p class="text-[11px] text-slate-400 font-bold">Klik tanggal untuk filter</p></div>
+                    <button id="next-month" class="w-10 h-10 rounded-2xl bg-white border border-slate-200 grid place-items-center btn-press"><i class="ph-bold ph-caret-right"></i></button>
+                  </div>
+                  <div class="calendar-grid text-[11px] text-center text-slate-400 font-black uppercase mb-2"><div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div></div>
+                  <div id="calendar-body" class="calendar-grid"></div>
+                  <div class="mt-5 flex flex-wrap gap-3 text-[11px] font-black text-slate-500">
+                    <span class="inline-flex items-center gap-1"><span class="dot bg-indigo-500"></span>Agenda</span>
+                    <span class="inline-flex items-center gap-1"><span class="dot bg-emerald-500"></span>Masuk</span>
+                    <span class="inline-flex items-center gap-1"><span class="dot bg-rose-500"></span>Keluar</span>
+                  </div>
+                </section>
+
+                <section id="insight-card" class="glass rounded-[32px] p-5"></section>
+              </aside>
+            </section>
+          </main>
+        </div>
+      </div>
     </div>
 
-    <script>
-        // --- 1. INISIALISASI SUPABASE ---
-        const supabaseUrl = 'https://txtjaoszqhzzqfrhztrt.supabase.co';
-        const supabaseKey = 'sb_publishable_Mgb1ew5PkLtQXSes3Jakzg_lPmTyk4K';
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    <nav class="lg:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 px-5 pb-4">
+      <div class="glass rounded-[30px] p-2 flex items-center justify-between">
+        <button id="nav-agenda" class="mobile-tab flex flex-col items-center gap-1 rounded-2xl px-5 py-2.5 text-indigo-600 font-black" data-tab="agenda"><i id="icon-agenda" class="ph-fill ph-list-checks text-2xl"></i><span class="text-[10px]">Agenda</span></button>
+        <button id="btn-open-modal" class="-mt-8 w-16 h-16 rounded-full bg-indigo-600 text-white grid place-items-center shadow-2xl shadow-indigo-300 btn-press border-4 border-white"><i class="ph-bold ph-plus text-3xl"></i></button>
+        <button id="nav-finance" class="mobile-tab flex flex-col items-center gap-1 rounded-2xl px-5 py-2.5 text-slate-400 font-black" data-tab="finance"><i id="icon-finance" class="ph ph-wallet text-2xl"></i><span class="text-[10px]">Keuangan</span></button>
+      </div>
+    </nav>
 
-        // --- 2. STATE APLIKASI ---
-        let financialTasks = [];
-        let agendaTasks = [];
-        let currentTab = 'agenda'; // Default tab
-        let currentModalForm = 'agenda'; 
-        
-        let currentDate = new Date(); 
-        let selectedFilterDate = null; 
-        let searchQuery = '';
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 opacity-0 transition-opacity"></div>
+    <section id="add-modal" class="fixed z-[60] bottom-0 left-0 lg:left-1/2 w-full lg:max-w-xl bg-white rounded-t-[34px] lg:rounded-[34px] bottom-sheet max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 flex justify-center pb-0"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
+      <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between gap-4">
+        <div><p id="modal-kicker" class="text-xs font-black uppercase tracking-widest text-indigo-600">Tambah Data</p><h3 id="modal-title" class="text-2xl font-black tracking-tight">Tambah Agenda</h3></div>
+        <button id="btn-close-modal" class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-500 grid place-items-center btn-press"><i class="ph-bold ph-x"></i></button>
+      </div>
 
-        // --- 3. DOM ELEMENTS ---
-        const loadingState = document.getElementById('loading');
-        const authScreen = document.getElementById('auth-screen');
-        const appDashboard = document.getElementById('app-dashboard');
-        const tabContent = document.getElementById('tab-content');
-        
-        // Navigation
-        const navAgenda = document.getElementById('nav-agenda');
-        const navFinance = document.getElementById('nav-finance');
-        const iconAgenda = document.getElementById('icon-agenda');
-        const iconFinance = document.getElementById('icon-finance');
-        
-        // Modal & Form
-        const modalOverlay = document.getElementById('modal-overlay');
-        const addModal = document.getElementById('add-modal');
-        const formAgenda = document.getElementById('form-agenda');
-        const formFinance = document.getElementById('form-finance');
-        const toggleAgendaBtn = document.getElementById('toggle-add-agenda');
-        const toggleFinanceBtn = document.getElementById('toggle-add-finance');
+      <div class="overflow-y-auto p-6">
+        <div id="modal-toggle" class="flex bg-slate-100 p-1 rounded-2xl mb-6">
+          <button id="toggle-add-agenda" class="flex-1 py-3 rounded-xl text-sm font-black bg-white text-indigo-600 shadow-sm">Agenda</button>
+          <button id="toggle-add-finance" class="flex-1 py-3 rounded-xl text-sm font-black text-slate-500">Keuangan</button>
+        </div>
 
-        // Header Date
-        const optionsHeader = { weekday: 'long', day: 'numeric', month: 'long' };
-        document.getElementById('header-date').textContent = new Date().toLocaleDateString('id-ID', optionsHeader);
+        <form id="form-agenda" class="space-y-4">
+          <input type="hidden" id="ag-id" />
+          <div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Judul Agenda</label><input id="ag-title" required maxlength="90" placeholder="Contoh: Revisi makalah PKN" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-bold outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500" /></div>
+          <div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Deskripsi</label><textarea id="ag-desc" rows="3" maxlength="250" placeholder="Catatan singkat, instruksi dosen, atau detail deadline..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-semibold outline-none focus:bg-white focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 resize-none"></textarea></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Prioritas</label><select id="ag-priority" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-black outline-none"><option value="Tinggi">🔴 Tinggi</option><option value="Sedang" selected>🟡 Sedang</option><option value="Rendah">🟢 Rendah</option></select></div>
+            <div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Kategori</label><select id="ag-category" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-black outline-none"><option value="Kuliah">📚 Kuliah</option><option value="Organisasi">👥 Organisasi</option><option value="Pribadi">🏠 Pribadi</option><option value="Karier">💼 Karier</option><option value="Lainnya">✨ Lainnya</option></select></div>
+          </div>
+          <div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Tanggal Deadline</label><input id="ag-date" type="date" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-bold outline-none" /></div>
+          <button id="btn-save-agenda" type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-black shadow-xl shadow-indigo-200 btn-press">Simpan Agenda</button>
+        </form>
 
-        // --- 4. FUNGSI UTILITAS ---
-        const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
-        const formatDate = (dateStr) => {
-            const date = new Date(dateStr);
-            const today = new Date();
-            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-            
-            if (date.toDateString() === today.toDateString()) return "Hari ini";
-            if (date.toDateString() === tomorrow.toDateString()) return "Besok";
-            return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-        };
+        <form id="form-finance" class="space-y-4 hidden">
+          <input type="hidden" id="fin-id" />
+          <div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Judul Transaksi</label><input id="fin-title" required maxlength="90" placeholder="Contoh: Uang bulanan / Bayar kos" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-bold outline-none focus:bg-white focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500" /></div>
+          <div class="grid grid-cols-5 gap-3"><div class="col-span-3"><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Nominal</label><input id="fin-amount" type="number" required min="1" step="1" placeholder="50000" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-black outline-none" /></div><div class="col-span-2"><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Jenis</label><select id="fin-type" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-black outline-none"><option value="expense">📉 Keluar</option><option value="income">📈 Masuk</option></select></div></div>
+          <div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Kategori</label><select id="fin-category" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-black outline-none"><option value="Makan & Minum">🍔 Makan</option><option value="Kos/Tempat Tinggal">🏠 Kos</option><option value="Transportasi">🛵 Transportasi</option><option value="Tugas Kuliah">📚 Kuliah</option><option value="Tabungan">🏦 Tabungan</option><option value="Hiburan">🎮 Hiburan</option><option value="Lainnya">📦 Lainnya</option></select></div><div><label class="block text-xs font-black text-slate-500 mb-2 uppercase">Tanggal</label><input id="fin-date" type="date" required class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 font-bold outline-none" /></div></div>
+          <button id="btn-save-finance" type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-4 font-black shadow-xl shadow-emerald-200 btn-press">Simpan Transaksi</button>
+        </form>
+      </div>
+    </section>
 
-        const showToast = (message, type = 'success') => {
-            const toastEl = document.getElementById('toast');
-            const iconEl = document.getElementById('toast-icon');
-            document.getElementById('toast-message').textContent = message;
-            
-            if (type === 'success') {
-                toastEl.className = "fixed top-6 left-1/2 -translate-x-1/2 transform transition-all duration-300 z-[100] flex items-center gap-2 px-5 py-3 rounded-full shadow-lg text-white font-semibold text-sm bg-emerald-500 translate-y-0";
-                iconEl.className = "ph-fill ph-check-circle text-lg";
-            } else {
-                toastEl.className = "fixed top-6 left-1/2 -translate-x-1/2 transform transition-all duration-300 z-[100] flex items-center gap-2 px-5 py-3 rounded-full shadow-lg text-white font-semibold text-sm bg-rose-500 translate-y-0";
-                iconEl.className = "ph-fill ph-warning-circle text-lg";
-            }
-            
-            setTimeout(() => {
-                toastEl.classList.remove('translate-y-0');
-                toastEl.classList.add('-translate-y-24');
-            }, 3000);
-        };
+    <div id="confirm-overlay" class="hidden fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[80] grid place-items-center p-5">
+      <div class="bg-white rounded-[30px] p-6 max-w-sm w-full shadow-2xl animate-in">
+        <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 grid place-items-center mb-4"><i class="ph-fill ph-warning-circle text-3xl"></i></div>
+        <h3 class="text-xl font-black">Hapus data?</h3>
+        <p class="text-sm text-slate-500 mt-2 font-medium">Data akan dihapus permanen dari database dan tidak bisa dikembalikan.</p>
+        <div class="grid grid-cols-2 gap-3 mt-6"><button id="btn-cancel-delete" class="rounded-2xl bg-slate-100 text-slate-700 py-3 font-black btn-press">Batal</button><button id="btn-confirm-delete" class="rounded-2xl bg-rose-600 text-white py-3 font-black btn-press">Hapus</button></div>
+      </div>
+    </div>
+  </div>
 
-        const showLoading = (show) => {
-            if (show) { loadingState.classList.remove('hidden'); } 
-            else { loadingState.classList.add('hidden'); }
-        };
+<script>
+const supabaseUrl = 'https://txtjaoszqhzzqfrhztrt.supabase.co';
+const supabaseKey = 'sb_publishable_Mgb1ew5PkLtQXSes3Jakzg_lPmTyk4K';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-        // --- 5. LOGIKA TAB NAVIGATION (BOTTOM NAV) ---
-        window.switchTab = (tab) => {
-            currentTab = tab;
-            
-            // Reset styles
-            navAgenda.className = "nav-item inactive flex flex-col items-center p-2 w-16";
-            navFinance.className = "nav-item inactive flex flex-col items-center p-2 w-16";
-            iconAgenda.className = "ph ph-list-checks text-2xl mb-1 transition-all";
-            iconFinance.className = "ph ph-wallet text-2xl mb-1 transition-all";
+let financialTasks = [];
+let agendaTasks = [];
+let currentTab = 'agenda';
+let currentModalForm = 'agenda';
+let currentDate = new Date();
+let selectedFilterDate = null;
+let activeRange = 'all';
+let searchQuery = '';
+let sortMode = 'date-asc';
+let currentUser = null;
+let deleteTarget = null;
+let realtimeChannel = null;
 
-            // Set active styles
-            if (tab === 'agenda') {
-                navAgenda.classList.replace('inactive', 'active');
-                iconAgenda.classList.replace('ph', 'ph-fill');
-            } else {
-                navFinance.classList.replace('inactive', 'active');
-                iconFinance.classList.replace('ph', 'ph-fill');
-            }
-            
-            renderMainContent();
-        };
+const $ = (id) => document.getElementById(id);
+const fmtRupiah = (n) => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(Number(n||0));
+const toISODate = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const todayISO = () => toISODate(new Date());
+const escapeHTML = (str='') => String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
-        // --- 6. LOGIKA MODAL (BOTTOM SHEET) ---
-        const openModal = () => {
-            modalOverlay.classList.remove('hidden');
-            setTimeout(() => {
-                modalOverlay.classList.remove('opacity-0');
-                addModal.classList.add('open');
-            }, 10);
-            
-            // Sesuaikan isi modal berdasarkan tab yang sedang aktif
-            switchModalForm(currentTab);
-        };
+function parseLocalDate(dateStr) {
+  if (!dateStr) return new Date('Invalid');
+  const [y,m,d] = String(dateStr).split('-').map(Number);
+  return new Date(y, (m||1)-1, d||1);
+}
+function formatDate(dateStr, long=false) {
+  const date = parseLocalDate(dateStr);
+  const now = new Date();
+  const tomorrow = new Date(); tomorrow.setDate(now.getDate()+1);
+  if (toISODate(date) === todayISO()) return 'Hari ini';
+  if (toISODate(date) === toISODate(tomorrow)) return 'Besok';
+  return date.toLocaleDateString('id-ID', long ? { weekday:'long', day:'numeric', month:'long', year:'numeric' } : { day:'numeric', month:'short', year:'numeric' });
+}
+function isLate(dateStr) { return parseLocalDate(dateStr) < parseLocalDate(todayISO()); }
+function priorityRank(p) { return ({Tinggi: 3, Sedang: 2, Rendah: 1})[p] || 0; }
 
-        const closeModal = () => {
-            addModal.classList.remove('open');
-            modalOverlay.classList.add('opacity-0');
-            setTimeout(() => modalOverlay.classList.add('hidden'), 300);
-        };
+function showLoading(show) { $('loading').classList.toggle('hidden', !show); }
+function showToast(message, type='success') {
+  const box = $('toast-box');
+  const icon = $('toast-icon');
+  $('toast-message').textContent = message;
+  const color = type === 'error' ? 'bg-rose-500' : type === 'info' ? 'bg-indigo-600' : 'bg-emerald-500';
+  box.className = `flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl text-white font-bold text-sm ${color}`;
+  icon.className = type === 'error' ? 'ph-fill ph-warning-circle text-xl' : 'ph-fill ph-check-circle text-xl';
+  $('toast').classList.add('toast-show');
+  setTimeout(() => $('toast').classList.remove('toast-show'), 2800);
+}
 
-        const switchModalForm = (type) => {
-            currentModalForm = type;
-            if(type === 'agenda') {
-                formAgenda.classList.remove('hidden'); formFinance.classList.add('hidden');
-                toggleAgendaBtn.className = "flex-1 py-2.5 rounded-lg text-sm font-bold bg-white text-indigo-600 shadow-sm transition-all";
-                toggleFinanceBtn.className = "flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
-                document.getElementById('modal-title').textContent = "Tambah Agenda";
-            } else {
-                formFinance.classList.remove('hidden'); formAgenda.classList.add('hidden');
-                toggleFinanceBtn.className = "flex-1 py-2.5 rounded-lg text-sm font-bold bg-white text-emerald-600 shadow-sm transition-all";
-                toggleAgendaBtn.className = "flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-500 hover:text-slate-700 transition-all";
-                document.getElementById('modal-title').textContent = "Catat Transaksi";
-            }
-        };
+function setDefaultDates() {
+  $('ag-date').value = todayISO();
+  $('fin-date').value = todayISO();
+}
 
-        document.getElementById('btn-open-modal').addEventListener('click', openModal);
-        document.getElementById('btn-close-modal').addEventListener('click', closeModal);
-        modalOverlay.addEventListener('click', closeModal);
-        toggleAgendaBtn.addEventListener('click', () => switchModalForm('agenda'));
-        toggleFinanceBtn.addEventListener('click', () => switchModalForm('finance'));
+function updateHeaderDate() {
+  $('header-date').textContent = new Date().toLocaleDateString('id-ID', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
 
-        // --- 7. FETCH & RENDER DATA ---
-        const fetchData = async () => {
-            showLoading(true);
-            try {
-                const { data: finData } = await supabaseClient.from('financial_tasks').select('*').order('due_date', { ascending: true });
-                const { data: agData } = await supabaseClient.from('daily_tasks').select('*').order('due_date', { ascending: true });
-                
-                financialTasks = finData || [];
-                agendaTasks = agData || [];
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.mobile-tab').forEach(btn => {
+    const active = btn.dataset.tab === tab;
+    btn.className = `mobile-tab flex flex-col items-center gap-1 rounded-2xl px-5 py-2.5 ${active ? 'text-indigo-600' : 'text-slate-400'} font-black`;
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = `${active ? 'ph-fill' : 'ph'} ${tab === btn.dataset.tab && tab === 'agenda' ? 'ph-list-checks' : btn.dataset.tab === 'agenda' ? 'ph-list-checks' : 'ph-wallet'} text-2xl`;
+  });
+  document.querySelectorAll('.side-tab').forEach(btn => {
+    const active = btn.dataset.tab === tab;
+    btn.className = `side-tab w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-extrabold text-sm ${active ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-white'}`;
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = `${active ? 'ph-fill' : 'ph'} ${btn.dataset.tab === 'agenda' ? 'ph-list-checks' : 'ph-wallet'} text-xl`;
+  });
+  renderAll();
+}
 
-                renderCalendar();
-                renderMainContent();
-            } catch (error) {
-                console.error("Error fetching:", error);
-            } finally {
-                showLoading(false);
-            }
-        };
+function openModal(type=currentTab, mode='create', item=null) {
+  switchModalForm(type);
+  $('modal-kicker').textContent = mode === 'edit' ? 'Edit Data' : 'Tambah Data';
+  resetForms();
+  if (mode === 'edit' && item) fillEditForm(type, item);
+  $('modal-overlay').classList.remove('hidden');
+  setTimeout(() => { $('modal-overlay').classList.remove('opacity-0'); $('add-modal').classList.add('open'); }, 10);
+}
+function closeModal() {
+  $('add-modal').classList.remove('open');
+  $('modal-overlay').classList.add('opacity-0');
+  setTimeout(() => $('modal-overlay').classList.add('hidden'), 260);
+}
+function switchModalForm(type) {
+  currentModalForm = type;
+  const agenda = type === 'agenda';
+  $('form-agenda').classList.toggle('hidden', !agenda);
+  $('form-finance').classList.toggle('hidden', agenda);
+  $('toggle-add-agenda').className = `flex-1 py-3 rounded-xl text-sm font-black ${agenda ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500'}`;
+  $('toggle-add-finance').className = `flex-1 py-3 rounded-xl text-sm font-black ${!agenda ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500'}`;
+  $('modal-title').textContent = agenda ? 'Tambah Agenda' : 'Catat Transaksi';
+}
+function resetForms() {
+  $('form-agenda').reset(); $('form-finance').reset(); $('ag-id').value = ''; $('fin-id').value = '';
+  $('btn-save-agenda').textContent = 'Simpan Agenda'; $('btn-save-finance').textContent = 'Simpan Transaksi';
+  setDefaultDates();
+}
+function fillEditForm(type, item) {
+  if (type === 'agenda') {
+    $('modal-title').textContent = 'Edit Agenda'; $('btn-save-agenda').textContent = 'Update Agenda';
+    $('ag-id').value = item.id; $('ag-title').value = item.title || ''; $('ag-desc').value = item.description || ''; $('ag-priority').value = item.priority || 'Sedang'; $('ag-category').value = item.category || 'Kuliah'; $('ag-date').value = item.due_date || todayISO();
+  } else {
+    $('modal-title').textContent = 'Edit Transaksi'; $('btn-save-finance').textContent = 'Update Transaksi';
+    $('fin-id').value = item.id; $('fin-title').value = item.title || ''; $('fin-amount').value = item.amount || ''; $('fin-type').value = item.type || 'expense'; $('fin-category').value = item.category || 'Lainnya'; $('fin-date').value = item.due_date || todayISO();
+  }
+}
 
-        // Render Kalender (Logic sama, styling disempurnakan)
-        const renderCalendar = () => {
-            const calendarBody = document.getElementById('calendar-body');
-            calendarBody.innerHTML = '';
-            
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const today = new Date();
-            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-            
-            document.getElementById('current-month-year').textContent = `${monthNames[month]} ${year}`;
+async function fetchData(showSpin=true) {
+  if (showSpin) showLoading(true);
+  try {
+    const [finRes, agRes] = await Promise.all([
+      supabaseClient.from('financial_tasks').select('*').order('due_date', { ascending: true }),
+      supabaseClient.from('daily_tasks').select('*').order('due_date', { ascending: true })
+    ]);
+    if (finRes.error) throw finRes.error;
+    if (agRes.error) throw agRes.error;
+    financialTasks = finRes.data || [];
+    agendaTasks = agRes.data || [];
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal mengambil data. Periksa koneksi dan struktur tabel Supabase.', 'error');
+  } finally { if (showSpin) showLoading(false); }
+}
 
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+function renderAll() {
+  renderSummary(); renderCalendar(); renderFilterBar(); renderMainContent(); renderInsight();
+}
+function renderSummary() {
+  const totalAgenda = agendaTasks.length;
+  const doneAgenda = agendaTasks.filter(t => t.is_completed).length;
+  const lateAgenda = agendaTasks.filter(t => !t.is_completed && isLate(t.due_date)).length;
+  const income = financialTasks.filter(t => !t.is_completed && t.type === 'income').reduce((s,t) => s + Number(t.amount||0),0);
+  const expense = financialTasks.filter(t => !t.is_completed && t.type === 'expense').reduce((s,t) => s + Number(t.amount||0),0);
+  const balance = income - expense;
+  const cards = [
+    { label:'Agenda selesai', value:`${doneAgenda}/${totalAgenda}`, icon:'ph-check-fat', tone:'indigo', sub:`${totalAgenda ? Math.round(doneAgenda/totalAgenda*100) : 0}% progres` },
+    { label:'Terlambat', value:lateAgenda, icon:'ph-warning-circle', tone:'rose', sub:'Perlu ditangani' },
+    { label:'Pemasukan aktif', value:fmtRupiah(income), icon:'ph-trend-up', tone:'emerald', sub:'Belum ditandai selesai' },
+    { label:'Estimasi saldo', value:fmtRupiah(balance), icon:'ph-wallet', tone: balance < 0 ? 'rose' : 'slate', sub:`Keluar ${fmtRupiah(expense)}` }
+  ];
+  $('hero-summary').innerHTML = cards.map(c => `
+    <article class="glass rounded-[26px] p-4 animate-in">
+      <div class="flex items-start justify-between gap-3">
+        <div><p class="text-[11px] font-black text-slate-400 uppercase tracking-widest">${c.label}</p><h3 class="mt-2 text-lg lg:text-xl font-black tracking-tight truncate">${c.value}</h3><p class="mt-1 text-xs text-slate-500 font-bold">${c.sub}</p></div>
+        <div class="w-11 h-11 rounded-2xl bg-${c.tone}-50 text-${c.tone}-600 grid place-items-center"><i class="ph-fill ${c.icon} text-xl"></i></div>
+      </div>
+    </article>`).join('');
+  $('sidebar-insight').textContent = lateAgenda ? `${lateAgenda} agenda terlambat perlu diprioritaskan.` : 'Tidak ada agenda terlambat. Pertahankan ritmenya.';
+}
+function renderFilterBar() {
+  const has = selectedFilterDate || activeRange !== 'all' || searchQuery;
+  $('active-filter-bar').classList.toggle('hidden', !has);
+  const parts = [];
+  if (selectedFilterDate) parts.push(`Tanggal: ${formatDate(selectedFilterDate, true)}`);
+  if (activeRange !== 'all') parts.push(`Rentang: ${activeRange === 'today' ? 'Hari ini' : activeRange === 'week' ? '7 hari' : 'Terlambat'}`);
+  if (searchQuery) parts.push(`Kata kunci: "${escapeHTML(searchQuery)}"`);
+  $('active-filter-text').innerHTML = `<i class="ph-fill ph-funnel mr-1"></i>${parts.join(' • ')}`;
+}
+function renderCalendar() {
+  const body = $('calendar-body'); body.innerHTML = '';
+  const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+  const monthName = currentDate.toLocaleDateString('id-ID', { month:'long', year:'numeric' });
+  $('current-month-year').textContent = monthName;
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let i=0; i<firstDay; i++) body.insertAdjacentHTML('beforeend', '<div class="calendar-cell muted"></div>');
+  for (let day=1; day<=daysInMonth; day++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const cell = document.createElement('button');
+    cell.type = 'button'; cell.className = 'calendar-cell';
+    if (dateStr === todayISO()) cell.classList.add('today');
+    if (selectedFilterDate === dateStr) cell.classList.add('active');
+    let dots = '<span class="dot-container">';
+    if (agendaTasks.some(t => t.due_date === dateStr)) dots += '<span class="dot bg-indigo-500"></span>';
+    if (financialTasks.some(t => t.due_date === dateStr && t.type === 'income')) dots += '<span class="dot bg-emerald-500"></span>';
+    if (financialTasks.some(t => t.due_date === dateStr && t.type === 'expense')) dots += '<span class="dot bg-rose-500"></span>';
+    dots += '</span>';
+    cell.innerHTML = `<span>${day}</span>${dots}`;
+    cell.addEventListener('click', () => { selectedFilterDate = selectedFilterDate === dateStr ? null : dateStr; renderAll(); });
+    body.appendChild(cell);
+  }
+}
+function applyCommonFilters(items, type) {
+  const now = parseLocalDate(todayISO());
+  const week = new Date(now); week.setDate(now.getDate()+7);
+  let data = items.filter(item => {
+    const q = searchQuery.trim().toLowerCase();
+    const text = `${item.title||''} ${item.category||''} ${item.description||''} ${item.priority||''}`.toLowerCase();
+    const matchSearch = q ? text.includes(q) : true;
+    const matchDate = selectedFilterDate ? item.due_date === selectedFilterDate : true;
+    const d = parseLocalDate(item.due_date);
+    let matchRange = true;
+    if (activeRange === 'today') matchRange = item.due_date === todayISO();
+    if (activeRange === 'week') matchRange = d >= now && d <= week;
+    if (activeRange === 'late') matchRange = !item.is_completed && d < now;
+    return matchSearch && matchDate && matchRange;
+  });
+  data.sort((a,b) => {
+    if (sortMode === 'date-desc') return parseLocalDate(b.due_date) - parseLocalDate(a.due_date);
+    if (sortMode === 'priority' && type === 'agenda') return priorityRank(b.priority) - priorityRank(a.priority) || parseLocalDate(a.due_date) - parseLocalDate(b.due_date);
+    if (sortMode === 'title') return String(a.title||'').localeCompare(String(b.title||''));
+    return parseLocalDate(a.due_date) - parseLocalDate(b.due_date);
+  });
+  return data;
+}
+function renderMainContent() { currentTab === 'agenda' ? renderAgendaView() : renderFinanceView(); }
+function renderAgendaView() {
+  const data = applyCommonFilters(agendaTasks, 'agenda');
+  if (!data.length) { $('tab-content').innerHTML = emptyState('ph-list-magnifying-glass','Belum ada agenda yang cocok','Tambahkan agenda baru atau ubah filter pencarian.'); return; }
+  $('tab-content').innerHTML = `<div class="space-y-3">${data.map(agendaCard).join('')}</div>`;
+}
+function agendaCard(t) {
+  const late = !t.is_completed && isLate(t.due_date);
+  const tone = t.category === 'Organisasi' ? 'amber' : t.category === 'Pribadi' ? 'purple' : t.category === 'Karier' ? 'emerald' : 'indigo';
+  const icon = t.category === 'Organisasi' ? 'ph-users' : t.category === 'Pribadi' ? 'ph-house' : t.category === 'Karier' ? 'ph-briefcase' : 'ph-book-open';
+  return `<article class="animate-in bg-white border border-slate-100 rounded-[26px] p-4 shadow-sm hover:shadow-lg transition ${t.is_completed ? 'opacity-60' : ''}">
+    <div class="flex gap-4 items-start">
+      <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleComplete('${t.id}', ${!!t.is_completed}, 'daily_tasks')" class="custom-checkbox mt-1" />
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="w-8 h-8 rounded-xl bg-${tone}-50 text-${tone}-600 grid place-items-center"><i class="ph-fill ${icon}"></i></span>
+          <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">${escapeHTML(t.category||'-')}</span>
+          <span class="text-[11px] font-black px-2 py-1 rounded-full ${t.priority === 'Tinggi' ? 'bg-rose-50 text-rose-600' : t.priority === 'Sedang' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}">${escapeHTML(t.priority||'Sedang')}</span>
+          ${late ? '<span class="text-[11px] font-black px-2 py-1 rounded-full bg-rose-600 text-white">Terlambat</span>' : ''}
+        </div>
+        <h3 class="mt-3 font-black text-base leading-tight ${t.is_completed ? 'line-through text-slate-400' : 'text-slate-900'}">${escapeHTML(t.title)}</h3>
+        ${t.description ? `<p class="mt-1 text-sm text-slate-500 font-medium line-clamp-2">${escapeHTML(t.description)}</p>` : ''}
+        <div class="mt-4 flex items-center justify-between gap-3">
+          <span class="inline-flex items-center gap-1.5 text-xs font-black ${late ? 'text-rose-600' : 'text-slate-400'}"><i class="ph-bold ${late ? 'ph-warning-circle' : 'ph-calendar-blank'}"></i>${formatDate(t.due_date)}</span>
+          <div class="flex items-center gap-1"><button onclick="editItem('agenda','${t.id}')" class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 grid place-items-center"><i class="ph-bold ph-pencil-simple"></i></button><button onclick="askDelete('${t.id}','daily_tasks')" class="w-9 h-9 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 grid place-items-center"><i class="ph-bold ph-trash"></i></button></div>
+        </div>
+      </div>
+    </div>
+  </article>`;
+}
+function renderFinanceView() {
+  const data = applyCommonFilters(financialTasks, 'finance');
+  if (!data.length) { $('tab-content').innerHTML = emptyState('ph-receipt','Belum ada transaksi yang cocok','Catat pemasukan atau pengeluaran pertama Anda.'); return; }
+  $('tab-content').innerHTML = `<div class="space-y-3">${data.map(financeCard).join('')}</div>`;
+}
+function financeCard(t) {
+  const isIncome = t.type === 'income';
+  const iconMap = { 'Makan & Minum':['ph-hamburger','orange'], 'Kos/Tempat Tinggal':['ph-house-line','indigo'], 'Transportasi':['ph-car','sky'], 'Tugas Kuliah':['ph-books','purple'], 'Tabungan':['ph-bank','emerald'], 'Hiburan':['ph-game-controller','pink'], 'Lainnya':['ph-dots-three-circle','slate'] };
+  const [icon,tone] = iconMap[t.category] || iconMap['Lainnya'];
+  return `<article class="animate-in bg-white border border-slate-100 rounded-[26px] p-4 shadow-sm hover:shadow-lg transition ${t.is_completed ? 'opacity-60' : ''}">
+    <div class="flex items-center gap-3">
+      <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleComplete('${t.id}', ${!!t.is_completed}, 'financial_tasks')" class="custom-checkbox" />
+      <div class="w-12 h-12 rounded-2xl bg-${tone}-50 text-${tone}-600 grid place-items-center flex-shrink-0"><i class="ph-fill ${icon} text-xl"></i></div>
+      <div class="flex-1 min-w-0"><h3 class="font-black text-sm leading-tight truncate ${t.is_completed ? 'line-through text-slate-400' : 'text-slate-900'}">${escapeHTML(t.title)}</h3><p class="mt-1 text-[11px] font-black text-slate-400">${formatDate(t.due_date)} • ${escapeHTML(t.category||'-')}</p></div>
+      <div class="text-right"><p class="font-black text-sm ${isIncome ? 'text-emerald-600' : 'text-rose-600'}">${isIncome ? '+' : '-'}${fmtRupiah(t.amount)}</p><div class="flex justify-end gap-1 mt-1"><button onclick="editItem('finance','${t.id}')" class="w-8 h-8 rounded-xl hover:bg-indigo-50 text-slate-400 hover:text-indigo-600"><i class="ph-bold ph-pencil-simple"></i></button><button onclick="askDelete('${t.id}','financial_tasks')" class="w-8 h-8 rounded-xl hover:bg-rose-50 text-slate-400 hover:text-rose-600"><i class="ph-bold ph-trash"></i></button></div></div>
+    </div>
+  </article>`;
+}
+function emptyState(icon, title, desc) { return `<div class="text-center py-16 bg-white border border-dashed border-slate-200 rounded-[30px] animate-in"><i class="ph-duotone ${icon} text-6xl text-slate-300"></i><h3 class="mt-4 font-black text-slate-700">${title}</h3><p class="mt-1 text-sm text-slate-500 font-medium">${desc}</p><button onclick="openModal(currentTab)" class="mt-6 px-5 py-3 rounded-2xl bg-indigo-600 text-white font-black btn-press">Tambah Sekarang</button></div>`; }
+function renderInsight() {
+  const upcoming = agendaTasks.filter(t => !t.is_completed && !isLate(t.due_date)).sort((a,b)=>parseLocalDate(a.due_date)-parseLocalDate(b.due_date))[0];
+  const expense = financialTasks.filter(t => !t.is_completed && t.type === 'expense').reduce((s,t)=>s+Number(t.amount||0),0);
+  const topExpense = financialTasks.filter(t=>t.type==='expense').reduce((acc,t)=>{ acc[t.category]=(acc[t.category]||0)+Number(t.amount||0); return acc; }, {});
+  const topCat = Object.entries(topExpense).sort((a,b)=>b[1]-a[1])[0];
+  $('insight-card').innerHTML = `<div class="flex items-center gap-3 mb-4"><div class="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 grid place-items-center"><i class="ph-fill ph-lightbulb-filament text-xl"></i></div><div><h3 class="font-black">Insight Cepat</h3><p class="text-xs text-slate-500 font-bold">Ringkasan otomatis</p></div></div><div class="space-y-3"><div class="bg-white rounded-2xl p-4 border border-slate-100"><p class="text-[11px] font-black text-slate-400 uppercase">Deadline terdekat</p><p class="mt-1 font-black text-sm">${upcoming ? `${escapeHTML(upcoming.title)} — ${formatDate(upcoming.due_date)}` : 'Belum ada agenda aktif.'}</p></div><div class="bg-white rounded-2xl p-4 border border-slate-100"><p class="text-[11px] font-black text-slate-400 uppercase">Pengeluaran aktif</p><p class="mt-1 font-black text-sm">${fmtRupiah(expense)}</p></div><div class="bg-white rounded-2xl p-4 border border-slate-100"><p class="text-[11px] font-black text-slate-400 uppercase">Kategori pengeluaran terbesar</p><p class="mt-1 font-black text-sm">${topCat ? `${escapeHTML(topCat[0])} — ${fmtRupiah(topCat[1])}` : 'Belum ada data.'}</p></div></div>`;
+}
 
-            for (let i = 0; i < firstDay; i++) { calendarBody.innerHTML += `<div></div>`; }
+async function saveAgenda(e) {
+  e.preventDefault();
+  const id = $('ag-id').value;
+  const payload = { title:$('ag-title').value.trim(), description:$('ag-desc').value.trim(), priority:$('ag-priority').value, category:$('ag-category').value, due_date:$('ag-date').value };
+  if (!payload.title || !payload.due_date) return showToast('Judul dan tanggal wajib diisi.', 'error');
+  showLoading(true);
+  const res = id ? await supabaseClient.from('daily_tasks').update(payload).eq('id', id) : await supabaseClient.from('daily_tasks').insert([payload]);
+  showLoading(false);
+  if (res.error) showToast('Gagal menyimpan agenda.', 'error'); else { showToast(id ? 'Agenda diperbarui.' : 'Agenda tersimpan.'); closeModal(); fetchData(false); }
+}
+async function saveFinance(e) {
+  e.preventDefault();
+  const id = $('fin-id').value;
+  const amount = Number($('fin-amount').value);
+  const payload = { title:$('fin-title').value.trim(), amount, type:$('fin-type').value, category:$('fin-category').value, due_date:$('fin-date').value };
+  if (!payload.title || !payload.due_date || !amount || amount < 1) return showToast('Judul, nominal valid, dan tanggal wajib diisi.', 'error');
+  showLoading(true);
+  const res = id ? await supabaseClient.from('financial_tasks').update(payload).eq('id', id) : await supabaseClient.from('financial_tasks').insert([payload]);
+  showLoading(false);
+  if (res.error) showToast('Gagal menyimpan transaksi.', 'error'); else { showToast(id ? 'Transaksi diperbarui.' : 'Transaksi tersimpan.'); closeModal(); fetchData(false); }
+}
+window.toggleComplete = async (id, currentStatus, table) => {
+  const { error } = await supabaseClient.from(table).update({ is_completed: !currentStatus }).eq('id', id);
+  if (error) showToast('Gagal mengubah status.', 'error'); else fetchData(false);
+};
+window.editItem = (type, id) => {
+  const item = type === 'agenda' ? agendaTasks.find(t => String(t.id) === String(id)) : financialTasks.find(t => String(t.id) === String(id));
+  if (item) openModal(type, 'edit', item);
+};
+window.askDelete = (id, table) => { deleteTarget = { id, table }; $('confirm-overlay').classList.remove('hidden'); };
+async function confirmDelete() {
+  if (!deleteTarget) return;
+  showLoading(true);
+  const { error } = await supabaseClient.from(deleteTarget.table).delete().eq('id', deleteTarget.id);
+  showLoading(false); $('confirm-overlay').classList.add('hidden');
+  if (error) showToast('Gagal menghapus data.', 'error'); else { showToast('Data berhasil dihapus.'); fetchData(false); }
+  deleteTarget = null;
+}
+function exportCSV() {
+  const rows = [['jenis_data','judul','kategori','tipe/prioritas','nominal','tanggal','selesai']];
+  agendaTasks.forEach(t => rows.push(['agenda', t.title, t.category, t.priority, '', t.due_date, t.is_completed ? 'ya':'tidak']));
+  financialTasks.forEach(t => rows.push(['keuangan', t.title, t.category, t.type, t.amount, t.due_date, t.is_completed ? 'ya':'tidak']));
+  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `student-hub-export-${todayISO()}.csv`; a.click(); URL.revokeObjectURL(url);
+  showToast('File CSV berhasil dibuat.', 'info');
+}
+async function handleRegister() {
+  const email = $('auth-email').value.trim(); const password = $('auth-password').value;
+  if (!email || password.length < 6) return showToast('Email wajib diisi dan sandi minimal 6 karakter.', 'error');
+  showLoading(true); const { error } = await supabaseClient.auth.signUp({ email, password }); showLoading(false);
+  if (error) showToast(error.message, 'error'); else showToast('Registrasi berhasil. Cek email jika verifikasi aktif.', 'success');
+}
+async function handleLogin() {
+  const email = $('auth-email').value.trim(); const password = $('auth-password').value;
+  if (!email || !password) return showToast('Email dan sandi wajib diisi.', 'error');
+  showLoading(true); const { error } = await supabaseClient.auth.signInWithPassword({ email, password }); showLoading(false);
+  if (error) showToast('Email atau kata sandi tidak sesuai.', 'error');
+}
+async function handleLogout() { showLoading(true); await supabaseClient.auth.signOut(); showLoading(false); }
+function setupRealtime() {
+  if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+  realtimeChannel = supabaseClient.channel('student-hub-changes')
+    .on('postgres_changes', { event:'*', schema:'public', table:'daily_tasks' }, () => fetchData(false))
+    .on('postgres_changes', { event:'*', schema:'public', table:'financial_tasks' }, () => fetchData(false))
+    .subscribe();
+}
+function wireEvents() {
+  $('btn-open-modal').addEventListener('click', () => openModal(currentTab));
+  $('btn-open-modal-desktop').addEventListener('click', () => openModal(currentTab));
+  $('btn-close-modal').addEventListener('click', closeModal); $('modal-overlay').addEventListener('click', closeModal);
+  $('toggle-add-agenda').addEventListener('click', () => switchModalForm('agenda')); $('toggle-add-finance').addEventListener('click', () => switchModalForm('finance'));
+  $('form-agenda').addEventListener('submit', saveAgenda); $('form-finance').addEventListener('submit', saveFinance);
+  $('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth()-1); renderCalendar(); });
+  $('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth()+1); renderCalendar(); });
+  $('search-input').addEventListener('input', e => { searchQuery = e.target.value.toLowerCase(); renderAll(); });
+  $('sort-select').addEventListener('change', e => { sortMode = e.target.value; renderMainContent(); });
+  document.querySelectorAll('.range-btn').forEach(btn => btn.addEventListener('click', () => { activeRange = btn.dataset.range; document.querySelectorAll('.range-btn').forEach(b => b.className = 'range-btn px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-black'); btn.className = 'range-btn px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-black'; renderAll(); }));
+  $('clear-filter').addEventListener('click', () => { selectedFilterDate = null; activeRange = 'all'; searchQuery = ''; $('search-input').value=''; document.querySelector('[data-range="all"]').click(); renderAll(); });
+  document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+  $('btn-export').addEventListener('click', exportCSV);
+  $('btn-login').addEventListener('click', handleLogin); $('btn-register').addEventListener('click', handleRegister); $('btn-logout').addEventListener('click', handleLogout);
+  $('toggle-password').addEventListener('click', () => { const input = $('auth-password'); input.type = input.type === 'password' ? 'text' : 'password'; $('toggle-password').innerHTML = `<i class="ph ${input.type === 'password' ? 'ph-eye' : 'ph-eye-slash'}"></i>`; });
+  $('btn-cancel-delete').addEventListener('click', () => { deleteTarget = null; $('confirm-overlay').classList.add('hidden'); });
+  $('btn-confirm-delete').addEventListener('click', confirmDelete);
+}
 
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const cell = document.createElement('div');
-                cell.className = 'calendar-cell';
-                
-                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) cell.classList.add('today');
-                if (selectedFilterDate === dateStr) cell.classList.add('active');
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  currentUser = session?.user || null;
+  if (session) {
+    $('auth-screen').classList.add('hidden'); $('app-dashboard').classList.remove('hidden');
+    $('user-name').textContent = session.user.email ? session.user.email.split('@')[0] : 'Mahasiswa';
+    setupRealtime(); fetchData();
+  } else {
+    $('auth-screen').classList.remove('hidden'); $('app-dashboard').classList.add('hidden'); showLoading(false);
+  }
+});
 
-                let dotsHtml = '<div class="dot-container">';
-                if (financialTasks.some(t => t.due_date === dateStr && t.type === 'income')) dotsHtml += `<div class="dot bg-emerald-400"></div>`;
-                if (financialTasks.some(t => t.due_date === dateStr && t.type === 'expense')) dotsHtml += `<div class="dot bg-rose-400"></div>`;
-                if (agendaTasks.some(t => t.due_date === dateStr)) dotsHtml += `<div class="dot bg-indigo-400"></div>`;
-                dotsHtml += '</div>';
-
-                cell.innerHTML = `<span>${day}</span>${dotsHtml}`;
-                
-                cell.addEventListener('click', () => {
-                    selectedFilterDate = selectedFilterDate === dateStr ? null : dateStr;
-                    renderCalendar();
-                    renderMainContent();
-                });
-
-                calendarBody.appendChild(cell);
-            }
-
-            const filterInfo = document.getElementById('filter-info');
-            if (selectedFilterDate) {
-                filterInfo.classList.remove('hidden');
-                document.getElementById('filter-text').textContent = `Tugas tgl: ${formatDate(selectedFilterDate)}`;
-            } else {
-                filterInfo.classList.add('hidden');
-            }
-        };
-
-        // --- 8. DINAMIS RENDER KONTEN TAB UTAMA ---
-        const renderMainContent = () => {
-            tabContent.innerHTML = ''; // Kosongkan
-            
-            if (currentTab === 'agenda') {
-                renderAgendaView();
-            } else {
-                renderFinanceView();
-            }
-        };
-
-        const renderAgendaView = () => {
-            // Kalkulasi Progress
-            const total = agendaTasks.length;
-            const completed = agendaTasks.filter(t => t.is_completed).length;
-            const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
-            
-            // Build UI
-            let html = `
-                <div class="mb-5 bg-white p-5 rounded-[24px] shadow-sm border border-slate-100 flex items-center gap-4">
-                    <div class="w-14 h-14 rounded-full flex items-center justify-center relative ${percentage === 100 && total > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-indigo-50 text-indigo-600'}">
-                        <svg viewBox="0 0 36 36" class="w-full h-full transform -rotate-90">
-                            <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path class="transition-all duration-700 ease-out" stroke-dasharray="${percentage}, 100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        </svg>
-                        <span class="absolute text-[10px] font-bold">${percentage}%</span>
-                    </div>
-                    <div>
-                        <h3 class="font-extrabold text-slate-800 text-base">Progres Hari Ini</h3>
-                        <p class="text-slate-500 text-sm font-medium">${completed} dari ${total} tugas selesai</p>
-                    </div>
-                </div>
-                <div class="flex justify-between items-end mb-3 px-1">
-                    <h3 class="font-extrabold text-slate-800 text-lg">Daftar Agenda</h3>
-                </div>
-                <div class="space-y-3" id="agenda-list-container"></div>
-            `;
-            tabContent.innerHTML = html;
-            
-            // Filter Data
-            let filtered = agendaTasks.filter(task => {
-                const matchDate = selectedFilterDate ? task.due_date === selectedFilterDate : true;
-                const matchSearch = task.title.toLowerCase().includes(searchQuery) || task.category.toLowerCase().includes(searchQuery);
-                return matchDate && matchSearch;
-            });
-
-            const container = document.getElementById('agenda-list-container');
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 bg-slate-50 rounded-[24px] border border-dashed border-slate-200"><i class="ph-duotone ph-list-magnifying-glass text-4xl text-slate-300 mb-2"></i><p class="text-slate-500 font-medium text-sm">Belum ada agenda di sini.</p></div>`;
-                return;
-            }
-
-            filtered.forEach(task => {
-                const isLate = !task.is_completed && new Date(task.due_date) < new Date(new Date().setHours(0,0,0,0));
-                
-                let iconClass = "ph-book-open text-blue-500 bg-blue-50";
-                if(task.category === 'Organisasi') iconClass = "ph-users text-amber-500 bg-amber-50";
-                if(task.category === 'Pribadi') iconClass = "ph-house text-purple-500 bg-purple-50";
-
-                const div = document.createElement('div');
-                div.className = `p-4 rounded-[20px] flex gap-4 items-start transition-all ${task.is_completed ? 'opacity-60 bg-slate-50 border border-slate-100 grayscale-[0.5]' : 'bg-white shadow-sm border border-slate-100 hover:shadow-md'}`;
-                
-                div.innerHTML = `
-                    <div class="pt-1">
-                        <input type="checkbox" ${task.is_completed ? 'checked' : ''} onchange="toggleComplete('${task.id}', ${task.is_completed}, 'daily_tasks')" class="custom-checkbox">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="inline-flex w-6 h-6 items-center justify-center rounded-md ${iconClass}"><i class="ph-fill ${iconClass.split(' ')[0]} text-xs"></i></span>
-                            <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${task.category}</span>
-                            ${task.priority === 'Tinggi' ? '<span class="ml-auto w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>' : ''}
-                        </div>
-                        <h4 class="font-bold text-[15px] leading-tight mb-1 ${task.is_completed ? 'line-through text-slate-400' : 'text-slate-800 truncate'}">${task.title}</h4>
-                        ${task.description && !task.is_completed ? `<p class="text-xs text-slate-500 mb-2 line-clamp-2">${task.description}</p>` : ''}
-                        <div class="flex items-center justify-between mt-2">
-                            <div class="flex items-center gap-1.5 text-xs font-semibold ${isLate ? 'text-rose-500' : 'text-slate-400'}">
-                                <i class="ph-bold ${isLate ? 'ph-warning-circle' : 'ph-calendar-blank'}"></i>
-                                <span>${formatDate(task.due_date)} ${isLate ? '(Lewat)' : ''}</span>
-                            </div>
-                            <button onclick="deleteTask('${task.id}', 'daily_tasks')" class="text-slate-300 hover:text-rose-500 transition-colors"><i class="ph-fill ph-trash text-lg"></i></button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        };
-
-        const renderFinanceView = () => {
-            let income = 0, expense = 0;
-            financialTasks.forEach(task => {
-                if (!task.is_completed) {
-                    if (task.type === 'income') income += Number(task.amount);
-                    if (task.type === 'expense') expense += Number(task.amount);
-                }
-            });
-            const balance = income - expense;
-
-            let html = `
-                <div class="grid grid-cols-2 gap-3 mb-6">
-                    <div class="col-span-2 bg-gradient-to-r from-slate-800 to-slate-900 rounded-[24px] p-5 text-white shadow-lg shadow-slate-200 flex justify-between items-center">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-300 mb-1 tracking-wide uppercase">Estimasi Sisa Saldo</p>
-                            <p class="text-2xl font-extrabold tracking-tight">${formatRupiah(balance)}</p>
-                        </div>
-                        <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center">
-                            <i class="ph-duotone ph-wallet text-2xl text-white"></i>
-                        </div>
-                    </div>
-                    <div class="bg-emerald-50 rounded-[20px] p-4 border border-emerald-100">
-                        <div class="flex items-center gap-1.5 text-emerald-600 mb-1">
-                            <i class="ph-bold ph-trend-up"></i><p class="text-xs font-bold uppercase tracking-wider">Masuk</p>
-                        </div>
-                        <p class="text-sm font-extrabold text-emerald-700">${formatRupiah(income)}</p>
-                    </div>
-                    <div class="bg-rose-50 rounded-[20px] p-4 border border-rose-100">
-                        <div class="flex items-center gap-1.5 text-rose-600 mb-1">
-                            <i class="ph-bold ph-trend-down"></i><p class="text-xs font-bold uppercase tracking-wider">Keluar</p>
-                        </div>
-                        <p class="text-sm font-extrabold text-rose-700">${formatRupiah(expense)}</p>
-                    </div>
-                </div>
-                <div class="flex justify-between items-end mb-3 px-1">
-                    <h3 class="font-extrabold text-slate-800 text-lg">Riwayat & Rencana</h3>
-                </div>
-                <div class="space-y-3" id="finance-list-container"></div>
-            `;
-            tabContent.innerHTML = html;
-
-            let filtered = financialTasks.filter(task => {
-                const matchDate = selectedFilterDate ? task.due_date === selectedFilterDate : true;
-                const matchSearch = task.title.toLowerCase().includes(searchQuery) || task.category.toLowerCase().includes(searchQuery);
-                return matchDate && matchSearch;
-            });
-
-            const container = document.getElementById('finance-list-container');
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-center py-10 bg-slate-50 rounded-[24px] border border-dashed border-slate-200"><i class="ph-duotone ph-receipt text-4xl text-slate-300 mb-2"></i><p class="text-slate-500 font-medium text-sm">Belum ada catatan keuangan.</p></div>`;
-                return;
-            }
-
-            filtered.forEach(task => {
-                const isIncome = task.type === 'income';
-                
-                let iconMap = {
-                    "Makan & Minum": { icon: "ph-hamburger", color: "text-orange-500 bg-orange-50" },
-                    "Kos/Tempat Tinggal": { icon: "ph-house-line", color: "text-indigo-500 bg-indigo-50" },
-                    "Transportasi": { icon: "ph-car", color: "text-sky-500 bg-sky-50" },
-                    "Tugas Kuliah": { icon: "ph-books", color: "text-purple-500 bg-purple-50" },
-                    "Lainnya": { icon: "ph-dots-three-circle", color: "text-slate-500 bg-slate-100" }
-                };
-                let style = iconMap[task.category] || iconMap["Lainnya"];
-
-                const div = document.createElement('div');
-                div.className = `p-4 rounded-[20px] flex gap-3 items-center transition-all ${task.is_completed ? 'opacity-60 bg-slate-50 border border-slate-100' : 'bg-white shadow-sm border border-slate-100 hover:shadow-md'}`;
-                
-                div.innerHTML = `
-                    <input type="checkbox" ${task.is_completed ? 'checked' : ''} onchange="toggleComplete('${task.id}', ${task.is_completed}, 'financial_tasks')" class="custom-checkbox">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${style.color}">
-                        <i class="ph-fill ${style.icon} text-lg"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-bold text-[14px] leading-tight text-slate-800 truncate ${task.is_completed ? 'line-through text-slate-400' : ''}">${task.title}</h4>
-                        <p class="text-[11px] font-bold text-slate-400 mt-0.5">${formatDate(task.due_date)} • ${task.category}</p>
-                    </div>
-                    <div class="text-right flex flex-col items-end">
-                        <span class="text-[14px] font-extrabold ${isIncome ? 'text-emerald-500' : 'text-rose-500'}">
-                            ${isIncome ? '+' : '-'}${formatRupiah(task.amount)}
-                        </span>
-                        <button onclick="deleteTask('${task.id}', 'financial_tasks')" class="text-slate-300 hover:text-rose-500 mt-1 p-1"><i class="ph-fill ph-trash"></i></button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        };
-
-        // --- 9. OPERASI DATABASE ---
-        formAgenda.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showLoading(true);
-            const { error } = await supabaseClient.from('daily_tasks').insert([{
-                title: document.getElementById('ag-title').value,
-                description: document.getElementById('ag-desc').value,
-                priority: document.getElementById('ag-priority').value,
-                category: document.getElementById('ag-category').value,
-                due_date: document.getElementById('ag-date').value
-            }]);
-            showLoading(false);
-            if (!error) { formAgenda.reset(); closeModal(); showToast('Agenda tersimpan!'); fetchData(); }
-            else { showToast('Gagal menyimpan agenda.', 'error'); }
-        });
-
-        formFinance.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showLoading(true);
-            const { error } = await supabaseClient.from('financial_tasks').insert([{
-                title: document.getElementById('fin-title').value,
-                amount: document.getElementById('fin-amount').value,
-                type: document.getElementById('fin-type').value,
-                category: document.getElementById('fin-category').value,
-                due_date: document.getElementById('fin-date').value
-            }]);
-            showLoading(false);
-            if (!error) { formFinance.reset(); closeModal(); showToast('Transaksi tersimpan!'); fetchData(); }
-            else { showToast('Gagal menyimpan transaksi.', 'error'); }
-        });
-
-        window.toggleComplete = async (id, currentStatus, table) => {
-            const { error } = await supabaseClient.from(table).update({ is_completed: !currentStatus }).eq('id', id);
-            if (!error) fetchData();
-            else showToast('Gagal update status.', 'error');
-        };
-
-        window.deleteTask = async (id, table) => {
-            if(!confirm('Hapus item ini secara permanen?')) return;
-            const { error } = await supabaseClient.from(table).delete().eq('id', id);
-            if (!error) { showToast('Terhapus.'); fetchData(); }
-            else showToast('Gagal menghapus.', 'error');
-        };
-
-        // --- 10. EVENT LISTENERS LAIN & AUTH ---
-        document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); });
-        document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); });
-        document.getElementById('clear-filter').addEventListener('click', () => { selectedFilterDate = null; renderCalendar(); renderMainContent(); });
-        document.getElementById('search-input').addEventListener('input', (e) => { searchQuery = e.target.value.toLowerCase(); renderMainContent(); });
-
-        // Auth Logic
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            if (session) {
-                authScreen.classList.add('hidden'); appDashboard.classList.remove('hidden');
-                fetchData();
-            } else {
-                authScreen.classList.remove('hidden'); appDashboard.classList.add('hidden');
-                showLoading(false);
-            }
-        });
-
-        document.getElementById('btn-register').addEventListener('click', async () => {
-            const e = document.getElementById('auth-email').value; const p = document.getElementById('auth-password').value;
-            if (!e || !p) return showToast('Isi email & sandi!', 'error');
-            showLoading(true);
-            const { error } = await supabaseClient.auth.signUp({ email: e, password: p });
-            showLoading(false);
-            if (error) showToast(error.message, 'error'); else showToast('Daftar berhasil! Silakan masuk.');
-        });
-
-        document.getElementById('btn-login').addEventListener('click', async () => {
-            const e = document.getElementById('auth-email').value; const p = document.getElementById('auth-password').value;
-            if (!e || !p) return showToast('Isi email & sandi!', 'error');
-            showLoading(true);
-            const { error } = await supabaseClient.auth.signInWithPassword({ email: e, password: p });
-            showLoading(false);
-            if (error) showToast('Email/Sandi salah.', 'error');
-        });
-
-        document.getElementById('btn-logout').addEventListener('click', async () => {
-            showLoading(true); await supabaseClient.auth.signOut(); showLoading(false);
-        });
-
-    </script>
+updateHeaderDate(); setDefaultDates(); wireEvents();
+</script>
 </body>
 </html>
